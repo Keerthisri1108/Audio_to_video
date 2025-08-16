@@ -1,1 +1,150 @@
-readme
+Here is a documentation draft tailored to your Python script. It covers purpose, usage, dependencies, behavior, and potential improvements. I’ve also included a code-style docstring you can add at the top for clarity.
+
+---
+
+# Script Documentation: YouTube Audio Downloader (MP3)
+
+## Overview
+This Python script downloads the audio stream of a YouTube video as an MP3 file. It prompts the user for a YouTube video URL, extracts the video ID to construct a filename, downloads the audio-only stream, renames the resulting file from MP4 to MP3, and handles cross-platform path separators for Windows and POSIX systems.
+
+---
+
+## Purpose
+- To fetch and save only the audio portion of a YouTube video.
+- To save the output as an MP3 file named after the video ID.
+
+---
+
+## Features
+- Interactive input for YouTube URL.
+- Cross-platform path handling (Windows vs. POSIX).
+- Uses pytube to fetch audio streams (audio-only) and download.
+- Renames the downloaded file from .mp4 to .mp3 to reflect the audio format.
+
+---
+
+## Dependencies
+
+- Python 3.x
+- pytube (for YouTube video access and downloading)
+- Standard library modules: os
+
+Install pytube:
+- pip install pytube
+
+---
+
+## How It Works (High-Level)
+
+1. Prompt user for a YouTube video URL.
+2. Determine the current working directory and set a cross-platform path separator.
+3. Extract a video ID from the URL to use as the output filename base.
+4. Use pytube to:
+   - Access the video via the URL.
+   - Filter streams to audio-only.
+   - Download the first (default) audio stream, naming it with the video ID.
+5. Build paths for the downloaded file (.mp4) and the intended .mp3 filename.
+6. Rename/move the downloaded file to have a .mp3 extension:
+   - On Windows: use `ren`.
+   - On POSIX: use `mv`.
+
+Note: The script assumes the downloaded audio file is named as `<video_id>.mp4` after download, and it renames it to `<video_id>.mp3`.
+
+---
+
+## Usage
+
+1. Run the script:
+   - `python your_script.py`
+2. When prompted, paste the YouTube video URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ).
+3. The script saves the audio as an MP3 file in the current working directory, named after the video ID.
+
+---
+
+## API / Functions
+
+- `main()`
+  - Orchestrates input, download, and renaming.
+  - Key steps:
+    - Determine output path based on OS.
+    - Get video ID via `pytube.extract.video_id(video_url)`.
+    - Download audio stream: `YouTube(video_url).streams.filter(only_audio=True).first().download(filename=name)`.
+    - Rename: Windows uses `ren`, POSIX uses `mv`.
+
+---
+
+## Important Details and Assumptions
+
+- The script uses the first audio-only stream returned by `streams.filter(only_audio=True).first()`. There could be multiple audio streams with different codecs/bitrates; this picks the first one.
+- The downloaded file is treated as an MP4 file (`<video_id>.mp4`) and then renamed to `<video_id>.mp3`. This assumes the audio file has an MP4 container/extension but MP3 content. In practice, downloaded audio streams from YouTube are often in webm or mp4 containers with audio codecs; simply renaming the extension does not convert the codec. If you need true MP3 encoding, you would need an external converter (e.g., FFmpeg) to transcode the audio.
+- No error handling is present. If the URL is invalid, network issues occur, or no audio streams are available, the script will raise an exception.
+- The script writes output to the current working directory, not a dedicated output folder.
+
+---
+
+## Potential Improvements
+
+- Add error handling:
+  - Validate URL format.
+  - Catch network/download errors from pytube.
+  - Check if an audio stream exists before attempting to download.
+- Improve file type handling:
+  - Instead of renaming, explicitly convert the audio to MP3 using a library or a tool like FFmpeg:
+    - Download the audio in a known format, then run FFmpeg to convert to MP3.
+- Create a dedicated output directory (e.g., `downloads/`) and ensure it exists.
+- Allow selecting quality/codec for the audio stream.
+- Add progress feedback or a progress bar for the download.
+- Add unit tests or input validation for the `video_id` extraction.
+- Cross-platform path handling with `os.path` or `pathlib` to avoid manual separators.
+
+---
+
+## Suggested Code Improvements ( Optional )
+
+- Use `pathlib` for robust path handling.
+- Use `subprocess` to invoke FFmpeg for proper MP3 conversion (optional).
+- Add try/except blocks to handle common errors.
+
+Example sketch with improvements:
+
+```python
+from pytube import YouTube
+from pytube import extract
+from pathlib import Path
+import sys
+
+def main():
+    video_url = input('Enter YouTube video URL: ').strip()
+
+    # Output directory
+    out_dir = Path.cwd() / 'downloads'
+    out_dir.mkdir(exist_ok=True)
+
+    # Video ID for filename
+    name = extract.video_id(video_url)
+
+    # Download the audio-only stream
+    yt = YouTube(video_url)
+    audio_stream = yt.streams.filter(only_audio=True).first()
+    if not audio_stream:
+        print("No audio-only stream found for this video.")
+        sys.exit(1)
+
+    mp4_path = out_dir / f"{name}.mp4"
+    audio_stream.download(output_path=str(out_dir), filename=name)
+
+    # Optional: If you want true MP3, invoke FFmpeg to convert
+    mp3_path = out_dir / f"{name}.mp3"
+    # Example (requires FFmpeg installed):
+    # subprocess.run(['ffmpeg', '-i', str(mp4_path), str(mp3_path)], check=True)
+
+    # If you only renaming (not converting):
+    # mp4_path.rename(mp3_path)
+
+if __name__ == '__main__':
+    main()
+```
+
+---
+
+If you’d like, I can tailor this documentation to your preferred format (e.g., Markdown README, reStructuredText, Sphinx docstring) or generate a ready-to-use docstring block to place at the top of your script. I can also adapt it to include a real MP3 conversion step with FFmpeg if you want true MP3 output.
